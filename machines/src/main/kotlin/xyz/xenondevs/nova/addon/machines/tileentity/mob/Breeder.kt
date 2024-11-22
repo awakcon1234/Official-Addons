@@ -23,7 +23,6 @@ import xyz.xenondevs.nova.ui.menu.sideconfig.OpenSideConfigItem
 import xyz.xenondevs.nova.ui.menu.sideconfig.SideConfigMenu
 import xyz.xenondevs.nova.util.BlockSide
 import xyz.xenondevs.nova.util.EntityUtils
-import xyz.xenondevs.nova.util.getSurroundingChunks
 import xyz.xenondevs.nova.util.nmsEntity
 import xyz.xenondevs.nova.util.unwrap
 import xyz.xenondevs.nova.world.BlockPos
@@ -45,6 +44,7 @@ private val BREED_LIMIT by BREEDER.config.entry<Int>("breed_limit")
 private val MIN_RANGE = BREEDER.config.entry<Int>("range", "min")
 private val MAX_RANGE = BREEDER.config.entry<Int>("range", "max")
 private val DEFAULT_RANGE by BREEDER.config.entry<Int>("range", "default")
+private val FEED_BABIES by BREEDER.config.entry<Boolean>("feed_babies")
 
 private val FOOD_MATERIALS = setOf(
     Tag.ITEMS_PIGLIN_FOOD, Tag.ITEMS_FOX_FOOD, Tag.ITEMS_COW_FOOD, Tag.ITEMS_GOAT_FOOD, Tag.ITEMS_SHEEP_FOOD,
@@ -87,10 +87,10 @@ class Breeder(pos: BlockPos, blockState: NovaBlockState, data: Compound) : Netwo
             if (idleTime++ >= mxIdleTime) {
                 idleTime = 0
                 
-                val breedableEntities = pos.location.chunk
-                    .getSurroundingChunks(1, includeCurrent = true, ignoreUnloaded = true)
-                    .flatMap { it.entities.asList() }
+                val breedableEntities = pos.location.world
+                    .getNearbyEntities(region.toBoundingBox())
                     .filterIsInstance<Animals>()
+                
                 // TODO: protection check?
                 
                 var breedsLeft = min((energyHolder.energy / energyPerBreed).toInt(), BREED_LIMIT)
@@ -110,6 +110,9 @@ class Breeder(pos: BlockPos, blockState: NovaBlockState, data: Compound) : Netwo
     private fun interact(animal: Animals): Boolean {
         for ((index, item) in inventory.items.withIndex()) {
             if (item == null) continue
+            
+            if (!FEED_BABIES && !animal.isAdult)
+                continue
             
             fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, item.unwrap())
             val result = animal.nmsEntity.interact(fakePlayer, InteractionHand.MAIN_HAND)
