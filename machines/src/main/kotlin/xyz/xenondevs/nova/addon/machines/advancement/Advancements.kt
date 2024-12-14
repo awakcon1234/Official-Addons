@@ -20,7 +20,7 @@ import java.util.*
 
 private val ROOT = advancement(Machines, "root") {
     display(DisplayInfo(
-        Items.QUARRY.model.clientsideProvider.get().unwrap(),
+        Items.QUARRY.clientsideProvider.get().unwrap(),
         Component.translatable("advancement.machines.root.title").toNMSComponent(),
         Component.empty().toNMSComponent(),
         Optional.of(ResourceLocation.fromNamespaceAndPath("minecraft", "textures/block/tuff.png")),
@@ -124,7 +124,7 @@ private val WIRELESS_CHARGER = obtainNovaItemAdvancement(Machines, CHARGER, Item
 private val AUTO_FISHER = obtainNovaItemAdvancement(Machines, ROOT, Items.AUTO_FISHER)
 //</editor-fold>
 
-@Init(stage = InitStage.POST_PACK_PRE_WORLD)
+@Init(stage = InitStage.POST_WORLD)
 object Advancements {
     
     @InitFun

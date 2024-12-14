@@ -1,4 +1,4 @@
-import org.gradle.configurationcache.extensions.capitalized
+
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -22,9 +22,6 @@ fun RepositoryHandler.configureRepositories() {
 
 fun DependencyHandlerScope.configureDependencies() {
     paperweight.paperDevBundle(rootProject.libs.versions.paper)
-    configurations.getByName("mojangMappedServer").apply {
-        exclude("org.spongepowered", "configurate-yaml")
-    }
     implementation(rootProject.libs.nova)
 }
 
@@ -39,15 +36,18 @@ subprojects {
     dependencies { configureDependencies() }
     
     addon {
-        id.set(this@subprojects.name)
-        name.set(this@subprojects.name.capitalized())
-        novaVersion.set(rootProject.libs.versions.nova)
+        val outDir = project.findProperty("outDir")
+        if (outDir is String)
+            destination.set(File(outDir))
     }
     
     tasks {
         withType<KotlinCompile> {
             compilerOptions {
                 jvmTarget = JvmTarget.JVM_21
+                freeCompilerArgs.addAll(
+                    "-opt-in=xyz.xenondevs.invui.ExperimentalReactiveApi"
+                )
             }
         }
         
@@ -55,17 +55,6 @@ subprojects {
             dependsOn(JavaPlugin.CLASSES_TASK_NAME)
             from("src/main/java", "src/main/kotlin")
             archiveClassifier.set("sources")
-        }
-        
-        val buildDir = project.layout.buildDirectory.get().asFile
-        val outDir = (project.findProperty("outDir") as? String)?.let(::File) ?: buildDir
-        register<Copy>("addonJar") {
-            group = "build"
-            dependsOn("jar")
-            
-            from(File(buildDir, "libs/${project.name}-${project.version}.jar"))
-            into(outDir)
-            rename { "${addonMetadata.get().addonName.get()}-${project.version}.jar" }
         }
     }
     
@@ -78,5 +67,5 @@ subprojects {
 }
 
 tasks {
-    getByName("addonMetadata").enabled = false
+    getByName("addonJar").enabled = false
 }

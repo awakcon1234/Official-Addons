@@ -5,19 +5,19 @@ import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
-import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
 import xyz.xenondevs.cbf.Compound
-import xyz.xenondevs.commons.provider.mutable.MutableProvider
+import xyz.xenondevs.commons.provider.MutableProvider
 import xyz.xenondevs.invui.gui.Gui
 import xyz.xenondevs.invui.inventory.VirtualInventory
 import xyz.xenondevs.invui.inventory.event.ItemPostUpdateEvent
 import xyz.xenondevs.invui.inventory.event.ItemPreUpdateEvent
+import xyz.xenondevs.invui.item.AbstractItem
+import xyz.xenondevs.invui.item.Click
+import xyz.xenondevs.invui.item.ItemBuilder
 import xyz.xenondevs.invui.item.ItemProvider
-import xyz.xenondevs.invui.item.builder.ItemBuilder
-import xyz.xenondevs.invui.item.builder.setDisplayName
-import xyz.xenondevs.invui.item.impl.AbstractItem
 import xyz.xenondevs.nova.addon.logistics.registry.Blocks.STORAGE_UNIT
+import xyz.xenondevs.nova.config.entry
 import xyz.xenondevs.nova.ui.menu.sideconfig.OpenSideConfigItem
 import xyz.xenondevs.nova.ui.menu.sideconfig.SideConfigMenu
 import xyz.xenondevs.nova.util.item.takeUnlessEmpty
@@ -116,18 +116,18 @@ class StorageUnit(pos: BlockPos, state: NovaBlockState, data: Compound) : Networ
         
         private inner class StorageUnitDisplay : AbstractItem() {
             
-            override fun getItemProvider(): ItemProvider {
-                val type = inventory.type.takeUnlessEmpty() ?: return ItemBuilder(Material.BARRIER).setDisplayName("§r")
+            override fun getItemProvider(player: Player): ItemProvider {
+                val type = inventory.type.takeUnlessEmpty() ?: return ItemBuilder(Material.BARRIER).hideTooltip(true)
                 val amount = inventory.amount
                 val component = Component.translatable(
                     "menu.logistics.storage_unit.item_display_" + if (amount > 1) "plural" else "singular",
                     NamedTextColor.GRAY,
                     Component.text(amount, NamedTextColor.GREEN)
                 )
-                return ItemBuilder(type).setDisplayName(component).setAmount(1)
+                return ItemBuilder(type).setName(component).setAmount(1)
             }
             
-            override fun handleClick(clickType: ClickType, player: Player, event: InventoryClickEvent) = Unit
+            override fun handleClick(clickType: ClickType, player: Player, click: Click) = Unit
             
         }
         

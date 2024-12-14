@@ -8,7 +8,7 @@ import xyz.xenondevs.nova.initialize.InitStage
 @Init(stage = InitStage.PRE_PACK)
 object Enchantments : EnchantmentRegistry by VanillaHammers.registry {
     
-    val CURSE_OF_GIGANTISM = enchantment("curse_of_gigantism") {
+    val CURSE_OF_GIGANTISM by enchantment("curse_of_gigantism") {
         tableLevelRequirement(0..30)
         rarity(2)
         tableDiscoverable(true)

@@ -7,14 +7,14 @@ import org.bukkit.Sound
 import org.bukkit.entity.Display.Brightness
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
-import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
 import xyz.xenondevs.cbf.Compound
 import xyz.xenondevs.commons.collections.enumSetOf
 import xyz.xenondevs.invui.gui.Gui
 import xyz.xenondevs.invui.inventory.event.ItemPreUpdateEvent
+import xyz.xenondevs.invui.item.AbstractItem
+import xyz.xenondevs.invui.item.Click
 import xyz.xenondevs.invui.item.ItemProvider
-import xyz.xenondevs.invui.item.impl.AbstractItem
 import xyz.xenondevs.nova.addon.machines.gui.LeftRightFluidProgressItem
 import xyz.xenondevs.nova.addon.machines.registry.Blocks.COBBLESTONE_GENERATOR
 import xyz.xenondevs.nova.addon.machines.registry.GuiItems
@@ -26,6 +26,7 @@ import xyz.xenondevs.nova.addon.simpleupgrades.registry.UpgradeTypes
 import xyz.xenondevs.nova.addon.simpleupgrades.storedEnergyHolder
 import xyz.xenondevs.nova.addon.simpleupgrades.storedFluidContainer
 import xyz.xenondevs.nova.addon.simpleupgrades.storedUpgradeHolder
+import xyz.xenondevs.nova.config.entry
 import xyz.xenondevs.nova.ui.menu.EnergyBar
 import xyz.xenondevs.nova.ui.menu.FluidBar
 import xyz.xenondevs.nova.ui.menu.sideconfig.OpenSideConfigItem
@@ -117,7 +118,7 @@ class CobblestoneGenerator(pos: BlockPos, blockState: NovaBlockState, data: Comp
     private fun updateWaterLevel() {
         val item = if (!waterTank.isEmpty()) {
             val state = getFluidState(waterTank)
-            Models.COBBLESTONE_GENERATOR_WATER_LEVELS.model.unnamedClientsideProviders[state].get()
+            Models.COBBLESTONE_GENERATOR_WATER_LEVELS.createClientsideItemBuilder().addCustomModelData(state).get()
         } else null
         waterLevel.updateEntityData(true) { itemStack = item }
     }
@@ -125,7 +126,7 @@ class CobblestoneGenerator(pos: BlockPos, blockState: NovaBlockState, data: Comp
     private fun updateLavaLevel() {
         val item = if (!lavaTank.isEmpty()) {
             val state = getFluidState(lavaTank)
-            Models.COBBLESTONE_GENERATOR_LAVA_LEVELS.model.unnamedClientsideProviders[state].get()
+            Models.COBBLESTONE_GENERATOR_LAVA_LEVELS.createClientsideItemBuilder().addCustomModelData(state).get()
         } else null
         lavaLevel.updateEntityData(true) { itemStack = item }
     }
@@ -198,10 +199,10 @@ class CobblestoneGenerator(pos: BlockPos, blockState: NovaBlockState, data: Comp
         
         private inner class ChangeModeItem : AbstractItem() {
             
-            override fun getItemProvider(): ItemProvider =
-                mode.uiItem.model.clientsideProvider
+            override fun getItemProvider(player: Player): ItemProvider =
+                mode.uiItem.clientsideProvider
             
-            override fun handleClick(clickType: ClickType, player: Player, event: InventoryClickEvent) {
+            override fun handleClick(clickType: ClickType, player: Player, click: Click) {
                 if (clickType == ClickType.LEFT || clickType == ClickType.RIGHT) {
                     val direction = if (clickType == ClickType.LEFT) 1 else -1
                     mode = Mode.entries[(mode.ordinal + direction).mod(Mode.entries.size)]

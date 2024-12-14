@@ -19,7 +19,7 @@ import java.util.*
 
 private val ROOT = advancement(VanillaHammers, "root") {
     display(DisplayInfo(
-        Items.WOODEN_HAMMER.model.clientsideProvider.get().unwrap().copy(),
+        Items.WOODEN_HAMMER.clientsideProvider.get().unwrap().copy(),
         Component.translatable("advancement.vanilla_hammers.root.title").toNMSComponent(),
         Component.empty().toNMSComponent(),
         Optional.of(ResourceLocation.fromNamespaceAndPath("minecraft", "textures/block/tuff.png")),
@@ -44,7 +44,7 @@ private val OBSIDIAN_HAMMER = obtainNovaItemAdvancement(VanillaHammers, DIAMOND_
 private val FIERY_HAMMER = obtainNovaItemAdvancement(VanillaHammers, QUARTZ_HAMMER, Items.FIERY_HAMMER)
 private val ENDER_HAMMER = obtainNovaItemAdvancement(VanillaHammers, EMERALD_HAMMER, Items.ENDER_HAMMER)
 
-@Init(stage = InitStage.POST_PACK_PRE_WORLD)
+@Init(stage = InitStage.POST_WORLD)
 object Advancements {
     
     @InitFun

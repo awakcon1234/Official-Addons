@@ -1,5 +1,6 @@
 package xyz.xenondevs.nova.addon.machines.registry
 
+import net.minecraft.world.level.block.Blocks
 import org.bukkit.Material
 import xyz.xenondevs.nova.addon.machines.Machines
 import xyz.xenondevs.nova.addon.machines.block.StarShardsOre
@@ -40,7 +41,7 @@ import xyz.xenondevs.nova.addon.machines.tileentity.world.StarCollector
 import xyz.xenondevs.nova.addon.registry.BlockRegistry
 import xyz.xenondevs.nova.initialize.Init
 import xyz.xenondevs.nova.initialize.InitStage
-import xyz.xenondevs.nova.resources.layout.block.BackingStateCategory
+import xyz.xenondevs.nova.resources.builder.layout.block.BackingStateCategory
 import xyz.xenondevs.nova.world.block.NovaBlock
 import xyz.xenondevs.nova.world.block.NovaBlockBuilder
 import xyz.xenondevs.nova.world.block.NovaTileEntityBlock
@@ -63,14 +64,14 @@ import xyz.xenondevs.nova.world.item.tool.VanillaToolTiers
 @Init(stage = InitStage.PRE_PACK)
 object Blocks : BlockRegistry by Machines.registry {
     
-    private val SAND = Breakable(0.5, VanillaToolCategories.SHOVEL, VanillaToolTiers.WOOD, false, Material.PURPLE_CONCRETE_POWDER)
-    private val SANDSTONE = Breakable(0.8, VanillaToolCategories.PICKAXE, VanillaToolTiers.WOOD, true, Material.SANDSTONE)
-    private val STONE = Breakable(3.0, VanillaToolCategories.PICKAXE, VanillaToolTiers.WOOD, true, Material.NETHERITE_BLOCK)
-    private val LIGHT_METAL = Breakable(0.5, VanillaToolCategories.PICKAXE, VanillaToolTiers.WOOD, false, Material.IRON_BLOCK)
-    private val STONE_ORE = Breakable(3.0, VanillaToolCategories.PICKAXE, VanillaToolTiers.STONE, true, Material.STONE)
-    private val DEEPSLATE_ORE = Breakable(3.0, VanillaToolCategories.PICKAXE, VanillaToolTiers.STONE, true, Material.DEEPSLATE)
-    private val METAL = Breakable(5.0, VanillaToolCategories.PICKAXE, VanillaToolTiers.WOOD, true, Material.IRON_BLOCK)
-    private val MACHINE_FRAME = Breakable(2.0, VanillaToolCategories.PICKAXE, VanillaToolTiers.WOOD, true, Material.STONE)
+    private val SAND = Breakable(0.5, setOf(VanillaToolCategories.SHOVEL), VanillaToolTiers.WOOD, false, Material.PURPLE_CONCRETE_POWDER)
+    private val SANDSTONE = Breakable(0.8, setOf(VanillaToolCategories.PICKAXE), VanillaToolTiers.WOOD, true, Material.SANDSTONE)
+    private val STONE = Breakable(3.0, setOf(VanillaToolCategories.PICKAXE), VanillaToolTiers.WOOD, true, Material.NETHERITE_BLOCK)
+    private val LIGHT_METAL = Breakable(0.5, setOf(VanillaToolCategories.PICKAXE), VanillaToolTiers.WOOD, false, Material.IRON_BLOCK)
+    private val STONE_ORE = Breakable(3.0, setOf(VanillaToolCategories.PICKAXE), VanillaToolTiers.STONE, true, Material.STONE)
+    private val DEEPSLATE_ORE = Breakable(3.0, setOf(VanillaToolCategories.PICKAXE), VanillaToolTiers.STONE, true, Material.DEEPSLATE)
+    private val METAL = Breakable(5.0, setOf(VanillaToolCategories.PICKAXE), VanillaToolTiers.WOOD, true, Material.IRON_BLOCK)
+    private val MACHINE_FRAME = Breakable(2.0, setOf(VanillaToolCategories.PICKAXE), VanillaToolTiers.WOOD, true, Material.STONE)
     
     // TileEntities
     val AUTO_FISHER = stateBackedMachine("auto_fisher", ::AutoFisher)
@@ -106,17 +107,17 @@ object Blocks : BlockRegistry by Machines.registry {
     val QUARRY = interactiveTileEntity("quarry", ::Quarry) {
         behaviors(Quarry, STONE, BlockSounds(SoundGroup.STONE))
         stateProperties(FACING_HORIZONTAL)
-        models { selectModel { defaultModel.rotated() } }
+        entityBacked { defaultModel.rotated() }
     }
     val WIND_TURBINE = interactiveTileEntity("wind_turbine", ::WindTurbine) {
         behaviors(WindTurbineBehavior, METAL, BlockSounds(SoundGroup.METAL))
         stateProperties(FACING_HORIZONTAL)
-        models { selectModel { getModel("block/wind_turbine/base").rotated() } }
+        entityBacked { getModel("block/wind_turbine/base").rotated() }
     }
     val WIND_TURBINE_EXTRA = block("wind_turbine_extra") {
         behaviors(WindTurbineSectionBehavior, METAL, BlockSounds(SoundGroup.METAL))
         stateProperties(ScopedBlockStateProperties.TURBINE_SECTION)
-        models { modelLess { Material.BARRIER.createBlockData() } }
+        modelLess { Blocks.BARRIER.defaultBlockState() }
     }
     
     // Normal blocks
@@ -139,12 +140,9 @@ object Blocks : BlockRegistry by Machines.registry {
         init()
         behaviors(STONE, BlockSounds(SoundGroup.STONE))
         stateProperties(FACING_HORIZONTAL, ScopedBlockStateProperties.ACTIVE)
-        models {
-            stateBacked(BackingStateCategory.NOTE_BLOCK, BackingStateCategory.MUSHROOM_BLOCK)
-            selectModel {
-                val active = getPropertyValueOrThrow(BlockStateProperties.ACTIVE)
-                getModel("block/" + name + "_" + if (active) "on" else "off").rotated()
-            }
+        stateBacked(BackingStateCategory.NOTE_BLOCK, BackingStateCategory.MUSHROOM_BLOCK) {
+            val active = getPropertyValueOrThrow(BlockStateProperties.ACTIVE)
+            getModel("block/" + name + "_" + if (active) "on" else "off").rotated()
         }
     }
     
@@ -156,9 +154,8 @@ object Blocks : BlockRegistry by Machines.registry {
         init()
         behaviors(STONE, BlockSounds(SoundGroup.STONE))
         stateProperties(FACING_HORIZONTAL)
-        models {
-            stateBacked(BackingStateCategory.NOTE_BLOCK, BackingStateCategory.MUSHROOM_BLOCK)
-            selectModel { defaultModel.rotated() }
+        stateBacked(BackingStateCategory.NOTE_BLOCK, BackingStateCategory.MUSHROOM_BLOCK) {
+            defaultModel.rotated()
         }
     }
     
@@ -170,7 +167,7 @@ object Blocks : BlockRegistry by Machines.registry {
         init()
         behaviors(STONE, BlockSounds(SoundGroup.STONE))
         stateProperties(FACING_HORIZONTAL)
-        models { selectModel { defaultModel.rotated() } }
+        entityBacked { defaultModel.rotated() }
     }
     
     private fun interactiveTileEntity(
@@ -186,9 +183,8 @@ object Blocks : BlockRegistry by Machines.registry {
         block("${tier}_machine_frame") {
             stateProperties(DefaultScopedBlockStateProperties.WATERLOGGED)
             behaviors(MACHINE_FRAME, BlockSounds(SoundGroup.METAL), BlockDrops, Waterloggable)
-            models {
-                stateBacked(BackingStateCategory.LEAVES)
-                selectModel { getModel("block/machine_frame/$tier") }
+            stateBacked(BackingStateCategory.LEAVES) {
+                getModel("block/machine_frame/$tier")
             }
         }
     
@@ -197,9 +193,7 @@ object Blocks : BlockRegistry by Machines.registry {
         block: NovaBlockBuilder.() -> Unit
     ): NovaBlock = block(name) {
         block()
-        models {
-            stateBacked(BackingStateCategory.MUSHROOM_BLOCK, BackingStateCategory.NOTE_BLOCK)
-        }
+        stateBacked(BackingStateCategory.MUSHROOM_BLOCK, BackingStateCategory.NOTE_BLOCK)
     }
     
 }

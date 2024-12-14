@@ -1,12 +1,13 @@
-version = "0.4.6-alpha.15"
+version = "0.4.7-alpha.3"
 
 dependencies {
     implementation(project(":simple-upgrades"))
 }
 
 addon {
+    name.set("Machines")
     main.set("xyz.xenondevs.nova.addon.machines.Machines")
-    depend.add("simple_upgrades")
     version.set(project.version.toString())
     authors.addAll("StudioCode", "ByteZ", "Javahase")
+    dependency("Simple_Upgrades")
 }

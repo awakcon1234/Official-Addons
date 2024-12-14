@@ -16,21 +16,22 @@ import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
 import xyz.xenondevs.nova.addon.machines.Machines
 import xyz.xenondevs.nova.addon.machines.registry.Items
+import xyz.xenondevs.nova.config.entry
 import xyz.xenondevs.nova.integration.protection.ProtectionManager
 import xyz.xenondevs.nova.serialization.cbf.NamespacedCompound
 import xyz.xenondevs.nova.util.EntityUtils
+import xyz.xenondevs.nova.util.Key
 import xyz.xenondevs.nova.util.addPrioritized
 import xyz.xenondevs.nova.util.component.adventure.withoutPreFormatting
-import xyz.xenondevs.nova.util.data.NamespacedKey
 import xyz.xenondevs.nova.util.getTargetLocation
 import xyz.xenondevs.nova.util.item.retrieveData
 import xyz.xenondevs.nova.util.item.storeData
 import xyz.xenondevs.nova.world.item.behavior.ItemBehavior
 import xyz.xenondevs.nova.world.player.WrappedPlayerInteractEvent
 
-private val DATA_KEY = NamespacedKey(Machines, "entitydata")
-private val TYPE_KEY = NamespacedKey(Machines, "entitytype")
-private val TIME_KEY = NamespacedKey(Machines, "filltime")
+private val DATA_KEY = Key(Machines, "entitydata")
+private val TYPE_KEY = Key(Machines, "entitytype")
+private val TIME_KEY = Key(Machines, "filltime")
 
 private val BLACKLISTED_ENTITY_TYPES by Items.MOB_CATCHER.config.entry<Set<EntityType>>("entity_blacklist")
 
@@ -102,7 +103,7 @@ object MobCatcherBehavior : ItemBehavior {
     
     override fun modifyClientSideStack(player: Player?, itemStack: ItemStack, data: NamespacedCompound): ItemStack {
         val type = getEntityType(data) ?: return itemStack
-        val nmsType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.fromNamespaceAndPath("minecraft", type.key.key))
+        val nmsType = BuiltInRegistries.ENTITY_TYPE.getValue(ResourceLocation.fromNamespaceAndPath("minecraft", type.key.key))
         
         val lore = itemStack.lore() ?: mutableListOf()
         lore += Component.translatable(

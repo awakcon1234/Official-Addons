@@ -16,20 +16,18 @@ import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
-import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
 import org.joml.Quaternionf
 import org.joml.Vector3f
 import xyz.xenondevs.cbf.Compound
 import xyz.xenondevs.commons.collections.enumSetOf
-import xyz.xenondevs.commons.provider.immutable.combinedProvider
-import xyz.xenondevs.commons.provider.immutable.map
+import xyz.xenondevs.commons.provider.combinedProvider
+import xyz.xenondevs.commons.provider.map
 import xyz.xenondevs.invui.gui.Gui
+import xyz.xenondevs.invui.item.AbstractItem
+import xyz.xenondevs.invui.item.Click
 import xyz.xenondevs.invui.item.Item
 import xyz.xenondevs.invui.item.ItemProvider
-import xyz.xenondevs.invui.item.builder.addLoreLines
-import xyz.xenondevs.invui.item.builder.setDisplayName
-import xyz.xenondevs.invui.item.impl.AbstractItem
 import xyz.xenondevs.nova.addon.machines.registry.Blocks.QUARRY
 import xyz.xenondevs.nova.addon.machines.registry.Models
 import xyz.xenondevs.nova.addon.machines.util.rangeAffectedValue
@@ -40,6 +38,7 @@ import xyz.xenondevs.nova.addon.simpleupgrades.storedEnergyHolder
 import xyz.xenondevs.nova.addon.simpleupgrades.storedUpgradeHolder
 import xyz.xenondevs.nova.api.NovaEventFactory
 import xyz.xenondevs.nova.config.GlobalValues
+import xyz.xenondevs.nova.config.entry
 import xyz.xenondevs.nova.context.Context
 import xyz.xenondevs.nova.context.intention.DefaultContextIntentions
 import xyz.xenondevs.nova.context.intention.DefaultContextIntentions.BlockPlace
@@ -111,10 +110,8 @@ class Quarry(pos: BlockPos, blockState: NovaBlockState, compound: Compound) : Ne
     private val energyHolder = storedEnergyHolder(MAX_ENERGY, upgradeHolder, INSERT, BLOCKED_SIDES)
     private val itemHolder = storedItemHolder(inventory to EXTRACT, blockedSides = BLOCKED_SIDES)
     
-    private var sizeXProvider = storedValue("sizeX") { DEFAULT_SIZE_X }
-    private var sizeZProvider = storedValue("sizeZ") { DEFAULT_SIZE_Z }
-    private var sizeX by sizeXProvider
-    private var sizeZ by sizeZProvider
+    private var sizeXZProvider = storedValue("sizeX") { DEFAULT_SIZE_X }
+    private var sizeXZ by sizeXZProvider
     private var sizeY by storedValue("sizeY") { DEFAULT_SIZE_Y }
     
     private val solidScaffolding = MovableMultiModel()
@@ -125,12 +122,13 @@ class Quarry(pos: BlockPos, blockState: NovaBlockState, compound: Compound) : Ne
     
     private val energyPerTick by combinedProvider(
         BASE_ENERGY_CONSUMPTION,
-        sizeXProvider, sizeZProvider,
+        sizeXZProvider,
         ENERGY_PER_SQUARE_BLOCK,
         upgradeHolder.getValueProvider(UpgradeTypes.SPEED),
         upgradeHolder.getValueProvider(UpgradeTypes.EFFICIENCY)
-    ).map { (base, sizeX, sizeZ, perSqr, speed, eff) -> (base + sizeX * sizeZ * perSqr * speed / eff).roundToInt() }
-    private val maxSize by rangeAffectedValue(MAX_SIZE, upgradeHolder)
+    ).map { (base, sizeXZ, perSqr, speed, eff) -> (base + sizeXZ * sizeXZ * perSqr * speed / eff).roundToInt() }
+    private val maxSizeProvider = rangeAffectedValue(MAX_SIZE, upgradeHolder)
+    private val maxSize by maxSizeProvider
     private val drillSpeedMultiplier by speedMultipliedValue(DRILL_SPEED_MULTIPLIER, upgradeHolder)
     private val moveSpeed by speedMultipliedValue(MOVE_SPEED, upgradeHolder)
     
@@ -168,6 +166,10 @@ class Quarry(pos: BlockPos, blockState: NovaBlockState, compound: Compound) : Ne
     private val currentDrillSpeedMultiplier: Double
         get() = drillSpeedMultiplier * energySufficiency
     
+    init {
+        maxSizeProvider.subscribe { resize(sizeXZ.coerceIn(MIN_SIZE, it)) }
+    }
+    
     override fun handleEnable() {
         super.handleEnable()
         updateBounds(false)
@@ -192,7 +194,7 @@ class Quarry(pos: BlockPos, blockState: NovaBlockState, compound: Compound) : Ne
         val facing = blockState.getOrThrow(DefaultBlockStateProperties.FACING)
         val (minX, minZ, maxX, maxZ) = getMinMaxPositions(
             pos,
-            sizeX, sizeZ,
+            sizeXZ, sizeXZ,
             BlockSide.BACK.getBlockFace(facing), BlockSide.RIGHT.getBlockFace(facing)
         )
         this.minX = minX
@@ -201,21 +203,22 @@ class Quarry(pos: BlockPos, blockState: NovaBlockState, compound: Compound) : Ne
         this.maxZ = maxZ
         
         if (owner == null || (checkPermission && runBlocking { !canBreak(owner!!, pos, minX, maxX, minZ, maxZ) })) { // TODO: non-blocking
-            if (sizeX == MIN_SIZE && sizeZ == MIN_SIZE) {
+            if (sizeXZ == MIN_SIZE) {
                 val ctx = Context.intention(DefaultContextIntentions.BlockBreak)
                     .param(DefaultContextParamTypes.BLOCK_POS, pos)
                     .build()
                 BlockUtils.breakBlockNaturally(ctx)
                 return false
-            } else resize(MIN_SIZE, MIN_SIZE)
+            } else resize(MIN_SIZE)
         }
         
         return true
     }
     
-    private fun resize(sizeX: Int, sizeZ: Int) {
-        this.sizeX = sizeX
-        this.sizeZ = sizeZ
+    private fun resize(sizeXZ: Int) {
+        if (this.sizeXZ == sizeXZ)
+            return
+        this.sizeXZ = sizeXZ
         
         if (updateBounds(true)) {
             drilling = false
@@ -692,9 +695,9 @@ class Quarry(pos: BlockPos, blockState: NovaBlockState, compound: Compound) : Ne
                 "3 - - - - - - - 4")
             .addIngredient('i', inventory)
             .addIngredient('s', OpenSideConfigItem(sideConfigGui))
-            .addIngredient('m', RemoveNumberItem({ MIN_SIZE..maxSize }, { sizeX }, ::setSize).also(sizeItems::add))
-            .addIngredient('n', SizeDisplayItem { sizeX }.also(sizeItems::add))
-            .addIngredient('p', AddNumberItem({ MIN_SIZE..maxSize }, { sizeX }, ::setSize).also(sizeItems::add))
+            .addIngredient('m', RemoveNumberItem({ MIN_SIZE..maxSize }, { sizeXZ }, ::setSize).also(sizeItems::add))
+            .addIngredient('n', SizeDisplayItem { sizeXZ }.also(sizeItems::add))
+            .addIngredient('p', AddNumberItem({ MIN_SIZE..maxSize }, { sizeXZ }, ::setSize).also(sizeItems::add))
             .addIngredient('M', RemoveNumberItem({ MIN_DEPTH..MAX_DEPTH }, { sizeY }, ::setDepth).also(depthItems::add))
             .addIngredient('N', DepthDisplayItem { sizeY }.also(depthItems::add))
             .addIngredient('P', AddNumberItem({ MIN_DEPTH..MAX_DEPTH }, { sizeY }, ::setDepth).also(depthItems::add))
@@ -703,7 +706,7 @@ class Quarry(pos: BlockPos, blockState: NovaBlockState, compound: Compound) : Ne
             .build()
         
         private fun setSize(size: Int) {
-            resize(size, size)
+            resize(size)
             sizeItems.forEach(Item::notifyWindows)
         }
         
@@ -715,27 +718,27 @@ class Quarry(pos: BlockPos, blockState: NovaBlockState, compound: Compound) : Ne
         
         private inner class SizeDisplayItem(private val getNumber: () -> Int) : AbstractItem() {
             
-            override fun getItemProvider(): ItemProvider {
+            override fun getItemProvider(player: Player): ItemProvider {
                 val number = getNumber()
-                return DefaultGuiItems.NUMBER.model.createClientsideItemBuilder(modelId = getNumber())
-                    .setDisplayName(Component.translatable("menu.machines.quarry.size", Component.text(number), Component.text(number)))
+                return DefaultGuiItems.NUMBER.createClientsideItemBuilder().addCustomModelData(getNumber())
+                    .setName(Component.translatable("menu.machines.quarry.size", Component.text(number), Component.text(number)))
                     .addLoreLines(Component.translatable("menu.machines.quarry.size_tip", NamedTextColor.GRAY))
             }
             
-            override fun handleClick(clickType: ClickType, player: Player, event: InventoryClickEvent) = Unit
+            override fun handleClick(clickType: ClickType, player: Player, click: Click) = Unit
             
         }
         
         private inner class DepthDisplayItem(private val getNumber: () -> Int) : AbstractItem() {
             
-            override fun getItemProvider(): ItemProvider {
+            override fun getItemProvider(player: Player): ItemProvider {
                 val number = getNumber()
-                return DefaultGuiItems.NUMBER.model.createClientsideItemBuilder(modelId = getNumber())
-                    .setDisplayName(Component.translatable("menu.machines.quarry.depth", Component.text(number)))
+                return DefaultGuiItems.NUMBER.createClientsideItemBuilder().addCustomModelData(getNumber())
+                    .setName(Component.translatable("menu.machines.quarry.depth", Component.text(number)))
                     .addLoreLines(Component.translatable("menu.machines.quarry.depth_tip", NamedTextColor.GRAY))
             }
             
-            override fun handleClick(clickType: ClickType, player: Player, event: InventoryClickEvent) = Unit
+            override fun handleClick(clickType: ClickType, player: Player, click: Click) = Unit
             
         }
         

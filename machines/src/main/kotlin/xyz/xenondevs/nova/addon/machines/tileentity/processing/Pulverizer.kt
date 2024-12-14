@@ -1,10 +1,10 @@
 package xyz.xenondevs.nova.addon.machines.tileentity.processing
 
+import net.kyori.adventure.key.Key
 import net.minecraft.core.particles.ParticleTypes
-import net.minecraft.resources.ResourceLocation
 import xyz.xenondevs.cbf.Compound
 import xyz.xenondevs.commons.collections.enumSetOf
-import xyz.xenondevs.commons.provider.mutable.mapNonNull
+import xyz.xenondevs.commons.provider.mapNonNull
 import xyz.xenondevs.invui.gui.Gui
 import xyz.xenondevs.invui.inventory.event.ItemPreUpdateEvent
 import xyz.xenondevs.nova.addon.machines.gui.ProgressArrowItem
@@ -18,6 +18,7 @@ import xyz.xenondevs.nova.addon.simpleupgrades.gui.OpenUpgradesItem
 import xyz.xenondevs.nova.addon.simpleupgrades.registry.UpgradeTypes
 import xyz.xenondevs.nova.addon.simpleupgrades.storedEnergyHolder
 import xyz.xenondevs.nova.addon.simpleupgrades.storedUpgradeHolder
+import xyz.xenondevs.nova.config.entry
 import xyz.xenondevs.nova.ui.menu.EnergyBar
 import xyz.xenondevs.nova.ui.menu.sideconfig.OpenSideConfigItem
 import xyz.xenondevs.nova.ui.menu.sideconfig.SideConfigMenu
@@ -55,7 +56,7 @@ class Pulverizer(pos: BlockPos, blockState: NovaBlockState, data: Compound) : Ne
     
     private var timeLeft by storedValue("pulverizerTime") { 0 }
     
-    private var currentRecipe: PulverizerRecipe? by storedValue<ResourceLocation>("currentRecipe").mapNonNull(
+    private var currentRecipe: PulverizerRecipe? by storedValue<Key>("currentRecipe").mapNonNull(
         { RecipeManager.getRecipe(RecipeTypes.PULVERIZER, it) },
         NovaRecipe::id
     )
@@ -70,11 +71,6 @@ class Pulverizer(pos: BlockPos, blockState: NovaBlockState, data: Compound) : Ne
         6,
         ::getViewers
     )
-    
-    init {
-        if (currentRecipe == null)
-            timeLeft = 0
-    }
     
     override fun handleDisable() {
         super.handleDisable()
@@ -96,7 +92,7 @@ class Pulverizer(pos: BlockPos, blockState: NovaBlockState, data: Compound) : Ne
                     particleTask.start()
                 
                 if (timeLeft == 0) {
-                    outputInv.addItem(SELF_UPDATE_REASON, currentRecipe!!.result)
+                    currentRecipe?.let { outputInv.addItem(SELF_UPDATE_REASON, it.result) }
                     currentRecipe = null
                 }
                 

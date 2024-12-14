@@ -29,8 +29,7 @@ import xyz.xenondevs.nova.addon.logistics.util.MathUtils
 import xyz.xenondevs.nova.addon.registry.BlockRegistry
 import xyz.xenondevs.nova.initialize.Init
 import xyz.xenondevs.nova.initialize.InitStage
-import xyz.xenondevs.nova.resources.layout.block.BackingStateCategory
-import xyz.xenondevs.nova.util.bukkitBlockData
+import xyz.xenondevs.nova.resources.builder.layout.block.BackingStateCategory
 import xyz.xenondevs.nova.world.block.NovaTileEntityBlock
 import xyz.xenondevs.nova.world.block.NovaTileEntityBlockBuilder
 import xyz.xenondevs.nova.world.block.TileEntityConstructor
@@ -41,7 +40,7 @@ import xyz.xenondevs.nova.world.block.behavior.TileEntityDrops
 import xyz.xenondevs.nova.world.block.behavior.TileEntityInteractive
 import xyz.xenondevs.nova.world.block.behavior.TileEntityLimited
 import xyz.xenondevs.nova.world.block.sound.SoundGroup
-import xyz.xenondevs.nova.world.block.state.property.DefaultScopedBlockStateProperties.AXIS_HORIZONTAL
+import xyz.xenondevs.nova.world.block.state.property.DefaultScopedBlockStateProperties.AXIS
 import xyz.xenondevs.nova.world.item.tool.VanillaToolCategories
 import xyz.xenondevs.nova.world.item.tool.VanillaToolTiers
 import net.minecraft.world.level.block.state.properties.BlockStateProperties as MojangBlockStateProperties
@@ -49,10 +48,10 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties as 
 @Init(stage = InitStage.PRE_PACK)
 object Blocks : BlockRegistry by Logistics.registry {
     
-    private val CABLE = Breakable(0.0)
-    private val POWER_CELL = Breakable(4.0, VanillaToolCategories.PICKAXE, VanillaToolTiers.STONE, true, Material.IRON_BLOCK)
-    private val TANK = Breakable(2.0, VanillaToolCategories.PICKAXE, VanillaToolTiers.STONE, true, Material.GLASS)
-    private val OTHER = Breakable(4.0, VanillaToolCategories.PICKAXE, VanillaToolTiers.STONE, true, Material.COBBLESTONE)
+    private val CABLE = Breakable(0.0, requiresToolForDrops = false)
+    private val POWER_CELL = Breakable(4.0, setOf(VanillaToolCategories.PICKAXE), VanillaToolTiers.STONE, true, Material.IRON_BLOCK)
+    private val TANK = Breakable(2.0, setOf(VanillaToolCategories.PICKAXE), VanillaToolTiers.STONE, true, Material.GLASS)
+    private val OTHER = Breakable(4.0, setOf(VanillaToolCategories.PICKAXE), VanillaToolTiers.STONE, true, Material.COBBLESTONE)
     
     val BASIC_CABLE = cable("basic", ::BasicCable)
     val ADVANCED_CABLE = cable("advanced", ::AdvancedCable)
@@ -77,8 +76,8 @@ object Blocks : BlockRegistry by Logistics.registry {
     val VACUUM_CHEST = interactiveTileEntity("vacuum_chest", ::VacuumChest) { behaviors(OTHER, BlockSounds(SoundGroup.STONE)) }
     val TRASH_CAN = interactiveTileEntity("trash_can", ::TrashCan) {
         behaviors(OTHER, BlockSounds(SoundGroup.STONE))
-        stateProperties(AXIS_HORIZONTAL)
-        models { selectModel { defaultModel.rotated() } }
+        stateProperties(AXIS)
+        entityBacked { defaultModel.rotated() }
     }
     
     private fun cable(tier: String, constructor: TileEntityConstructor): NovaTileEntityBlock =
@@ -94,45 +93,38 @@ object Blocks : BlockRegistry by Logistics.registry {
                 ScopedBlockStateProperties.DOWN
             )
             
-            models {
-                entityBacked {
-                    val north = getPropertyValueOrThrow(BlockStateProperties.NORTH)
-                    val east = getPropertyValueOrThrow(BlockStateProperties.EAST)
-                    val south = getPropertyValueOrThrow(BlockStateProperties.SOUTH)
-                    val west = getPropertyValueOrThrow(BlockStateProperties.WEST)
-                    val up = getPropertyValueOrThrow(BlockStateProperties.UP)
-                    val down = getPropertyValueOrThrow(BlockStateProperties.DOWN)
-                    
-                    when {
-                        east && west -> Blocks.CHAIN.defaultBlockState()
-                            .setValue(MojangBlockStateProperties.AXIS, Axis.X)
-                            .bukkitBlockData
-                        
-                        north && south -> Blocks.CHAIN.defaultBlockState()
-                            .setValue(MojangBlockStateProperties.AXIS, Axis.Z)
-                            .bukkitBlockData
-                        
-                        up && down -> Blocks.CHAIN.defaultBlockState()
-                            .setValue(MojangBlockStateProperties.AXIS, Axis.Y)
-                            .bukkitBlockData
-                        
-                        else -> Material.STRUCTURE_VOID.createBlockData()
-                    }
-                }
+            entityBacked({
+                val north = getPropertyValueOrThrow(BlockStateProperties.NORTH)
+                val east = getPropertyValueOrThrow(BlockStateProperties.EAST)
+                val south = getPropertyValueOrThrow(BlockStateProperties.SOUTH)
+                val west = getPropertyValueOrThrow(BlockStateProperties.WEST)
+                val up = getPropertyValueOrThrow(BlockStateProperties.UP)
+                val down = getPropertyValueOrThrow(BlockStateProperties.DOWN)
                 
-                selectModel {
-                    val id = MathUtils.encodeToInt(
-                        getPropertyValueOrThrow(BlockStateProperties.NORTH),
-                        getPropertyValueOrThrow(BlockStateProperties.EAST),
-                        getPropertyValueOrThrow(BlockStateProperties.SOUTH),
-                        getPropertyValueOrThrow(BlockStateProperties.WEST),
-                        getPropertyValueOrThrow(BlockStateProperties.UP),
-                        getPropertyValueOrThrow(BlockStateProperties.DOWN)
-                    )
+                when {
+                    east && west -> Blocks.CHAIN.defaultBlockState()
+                        .setValue(MojangBlockStateProperties.AXIS, Axis.X)
                     
-                    getModel("block/cable/$tier/$id")
+                    north && south -> Blocks.CHAIN.defaultBlockState()
+                        .setValue(MojangBlockStateProperties.AXIS, Axis.Z)
+                    
+                    up && down -> Blocks.CHAIN.defaultBlockState()
+                        .setValue(MojangBlockStateProperties.AXIS, Axis.Y)
+                    
+                    else -> Blocks.STRUCTURE_VOID.defaultBlockState()
                 }
-            }
+            }, {
+                val id = MathUtils.encodeToInt(
+                    getPropertyValueOrThrow(BlockStateProperties.NORTH),
+                    getPropertyValueOrThrow(BlockStateProperties.EAST),
+                    getPropertyValueOrThrow(BlockStateProperties.SOUTH),
+                    getPropertyValueOrThrow(BlockStateProperties.WEST),
+                    getPropertyValueOrThrow(BlockStateProperties.UP),
+                    getPropertyValueOrThrow(BlockStateProperties.DOWN)
+                )
+                
+                getModel("block/cable/$tier/$id")
+            })
         }
     
     private fun interactiveTileEntity(
@@ -147,22 +139,15 @@ object Blocks : BlockRegistry by Logistics.registry {
     private fun powerCell(tier: String, constructor: TileEntityConstructor): NovaTileEntityBlock =
         interactiveTileEntity("${tier}_power_cell", constructor) {
             behaviors(POWER_CELL, BlockSounds(SoundGroup.METAL))
-            models {
-                stateBacked(BackingStateCategory.NOTE_BLOCK, BackingStateCategory.MUSHROOM_BLOCK)
-                selectModel {
-                    getModel("block/power_cell/$tier")
-                }
+            stateBacked(BackingStateCategory.NOTE_BLOCK, BackingStateCategory.MUSHROOM_BLOCK) {
+                getModel("block/power_cell/$tier")
             }
         }
     
     private fun tank(tier: String, constructor: TileEntityConstructor): NovaTileEntityBlock =
         interactiveTileEntity("${tier}_fluid_tank", constructor) {
             behaviors(Bucketable, TANK, BlockSounds(SoundGroup.GLASS))
-            models {
-                selectModel {
-                    getModel("block/fluid_tank/$tier")
-                }
-            }
+            entityBacked { getModel("block/fluid_tank/$tier") }
         }
     
 }

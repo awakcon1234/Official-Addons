@@ -1,4 +1,4 @@
-version = "1.4-alpha.2"
+version = "1.5-alpha.2"
 
 plugins {
     `maven-publish`
@@ -6,8 +6,7 @@ plugins {
 
 addon {
     main.set("xyz.xenondevs.nova.addon.simpleupgrades.SimpleUpgrades")
-    id.set("simple_upgrades")
-    name.set("Simple-Upgrades")
+    name.set("Simple_Upgrades")
     version.set(project.version.toString())
     authors.addAll("StudioCode")
 }

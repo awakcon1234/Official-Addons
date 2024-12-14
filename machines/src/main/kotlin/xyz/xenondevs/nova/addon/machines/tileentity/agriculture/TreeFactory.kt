@@ -19,6 +19,7 @@ import xyz.xenondevs.nova.addon.simpleupgrades.registry.UpgradeTypes
 import xyz.xenondevs.nova.addon.simpleupgrades.storedEnergyHolder
 import xyz.xenondevs.nova.addon.simpleupgrades.storedUpgradeHolder
 import xyz.xenondevs.nova.config.GlobalValues
+import xyz.xenondevs.nova.config.entry
 import xyz.xenondevs.nova.ui.menu.EnergyBar
 import xyz.xenondevs.nova.ui.menu.addIngredient
 import xyz.xenondevs.nova.ui.menu.sideconfig.OpenSideConfigItem
@@ -135,7 +136,7 @@ class TreeFactory(pos: BlockPos, blockState: NovaBlockState, data: Compound) : N
         val size = growthProgress.coerceIn(0.0..1.0).toFloat()
         plant.updateEntityData(true) {
             transformationInterpolationDelay = 0
-            itemStack = plantType?.let { PLANTS[it]!!.miniature.model.clientsideProvider.get() }
+            itemStack = plantType?.let { PLANTS[it]!!.miniature.clientsideProvider.get() }
             scale = Vector3f(size, size, size)
             translation = Vector3f(0.0f, 0.5f * size, 0.0f)
         }

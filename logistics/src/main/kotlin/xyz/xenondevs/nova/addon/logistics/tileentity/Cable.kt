@@ -1,7 +1,6 @@
 package xyz.xenondevs.nova.addon.logistics.tileentity
 
 import com.google.common.collect.Table
-import net.minecraft.resources.ResourceLocation
 import org.bukkit.Location
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
@@ -14,15 +13,16 @@ import xyz.xenondevs.commons.collections.enumMap
 import xyz.xenondevs.commons.collections.firstInstanceOfOrNull
 import xyz.xenondevs.commons.collections.toEnumSet
 import xyz.xenondevs.commons.provider.Provider
-import xyz.xenondevs.commons.provider.immutable.combinedProvider
-import xyz.xenondevs.commons.provider.immutable.map
-import xyz.xenondevs.commons.provider.immutable.provider
+import xyz.xenondevs.commons.provider.combinedProvider
+import xyz.xenondevs.commons.provider.map
+import xyz.xenondevs.commons.provider.provider
 import xyz.xenondevs.nova.addon.logistics.gui.cable.CableConfigMenu
 import xyz.xenondevs.nova.addon.logistics.registry.BlockStateProperties
 import xyz.xenondevs.nova.addon.logistics.registry.Blocks
 import xyz.xenondevs.nova.addon.logistics.registry.Items
 import xyz.xenondevs.nova.addon.logistics.registry.Models
 import xyz.xenondevs.nova.addon.logistics.util.MathUtils
+import xyz.xenondevs.nova.config.entry
 import xyz.xenondevs.nova.context.Context
 import xyz.xenondevs.nova.context.intention.DefaultContextIntentions.BlockBreak
 import xyz.xenondevs.nova.context.intention.DefaultContextIntentions.BlockPlace
@@ -89,7 +89,7 @@ open class Cable(
     override val itemTransferRate by itemTransferRateDelegate
     override val fluidTransferRate by fluidTransferRateDelegate
     override val linkedNodes: Set<NetworkNode> = emptySet()
-    override val typeId: ResourceLocation get() = block.id
+    override val typeId get() = block.id
     
     private val configMenus = ConcurrentHashMap<BlockFace, CableConfigMenu>()
     
@@ -289,7 +289,7 @@ open class Cable(
         val models = HashSet<Model>()
         attachments.forEach { (face, id) ->
             models += Model(
-                Models.CABLE_ATTACHMENT.model.unnamedClientsideProviders[id].get(),
+                Models.CABLE_ATTACHMENT.createClientsideItemBuilder().addCustomModelData(id).get(),
                 pos.location.add(.5, .5, .5),
                 // attachment models face south, display entities make north side of models face south,
                 // therefore attachments face north by default TODO: make attachment models face north

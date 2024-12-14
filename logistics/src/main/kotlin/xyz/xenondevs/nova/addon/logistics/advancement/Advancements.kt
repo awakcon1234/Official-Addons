@@ -17,12 +17,12 @@ import xyz.xenondevs.nova.util.component.adventure.toNMSComponent
 import xyz.xenondevs.nova.util.unwrap
 import java.util.*
 
-@Init(stage = InitStage.POST_PACK_PRE_WORLD)
+@Init(stage = InitStage.POST_WORLD)
 object Advancements {
     
     private val ROOT = advancement(Logistics, "root") {
         display(DisplayInfo(
-            Items.ULTIMATE_CABLE.model.clientsideProvider.get().unwrap(),
+            Items.ULTIMATE_CABLE.clientsideProvider.get().unwrap(),
             Component.translatable("advancement.logistics.root.title").toNMSComponent(),
             Component.empty().toNMSComponent(),
             Optional.of(ResourceLocation.fromNamespaceAndPath("minecraft", "textures/block/tuff.png")),

@@ -3,23 +3,25 @@ package xyz.xenondevs.nova.addon.machines.tileentity.mob
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
+import io.papermc.paper.datacomponent.DataComponentTypes
+import io.papermc.paper.datacomponent.item.ResolvableProfile
 import net.minecraft.world.entity.Mob
+import org.bukkit.Material
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
-import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
 import xyz.xenondevs.cbf.Compound
 import xyz.xenondevs.commons.gson.isString
-import xyz.xenondevs.commons.provider.immutable.combinedProvider
-import xyz.xenondevs.commons.provider.mutable.mutableProvider
+import xyz.xenondevs.commons.provider.combinedProvider
+import xyz.xenondevs.commons.provider.mutableProvider
 import xyz.xenondevs.invui.gui.Gui
 import xyz.xenondevs.invui.inventory.event.ItemPreUpdateEvent
+import xyz.xenondevs.invui.item.AbstractItem
+import xyz.xenondevs.invui.item.Click
+import xyz.xenondevs.invui.item.ItemBuilder
 import xyz.xenondevs.invui.item.ItemProvider
-import xyz.xenondevs.invui.item.builder.SkullBuilder
-import xyz.xenondevs.invui.item.builder.SkullBuilder.HeadTexture
-import xyz.xenondevs.invui.item.impl.AbstractItem
 import xyz.xenondevs.nova.addon.machines.gui.IdleBar
 import xyz.xenondevs.nova.addon.machines.item.MobCatcherBehavior
 import xyz.xenondevs.nova.addon.machines.registry.Blocks.MOB_DUPLICATOR
@@ -29,6 +31,7 @@ import xyz.xenondevs.nova.addon.simpleupgrades.gui.OpenUpgradesItem
 import xyz.xenondevs.nova.addon.simpleupgrades.registry.UpgradeTypes
 import xyz.xenondevs.nova.addon.simpleupgrades.storedEnergyHolder
 import xyz.xenondevs.nova.addon.simpleupgrades.storedUpgradeHolder
+import xyz.xenondevs.nova.config.entry
 import xyz.xenondevs.nova.ui.menu.EnergyBar
 import xyz.xenondevs.nova.ui.menu.addIngredient
 import xyz.xenondevs.nova.ui.menu.sideconfig.OpenSideConfigItem
@@ -46,7 +49,7 @@ import xyz.xenondevs.nova.world.block.tileentity.NetworkedTileEntity
 import xyz.xenondevs.nova.world.block.tileentity.menu.TileEntityMenuClass
 import xyz.xenondevs.nova.world.block.tileentity.network.type.NetworkConnectionType.BUFFER
 import xyz.xenondevs.nova.world.block.tileentity.network.type.NetworkConnectionType.INSERT
-import java.net.URL
+import java.net.URI
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.random.nextInt
@@ -134,7 +137,7 @@ class MobDuplicator(pos: BlockPos, blockState: NovaBlockState, data: Compound) :
         
         val spawnLocation = pos.location.add(0.5, 1.0, 0.5)
         val entity = if (keepNbt) {
-            EntityUtils.deserializeAndSpawn(entityData!!, spawnLocation, NBTUtils::removeItemData).bukkitEntity
+            EntityUtils.deserializeAndSpawn(entityData!!, spawnLocation, nbtModifier = NBTUtils::removeItemData).bukkitEntity
         } else spawnLocation.world!!.spawnEntity(spawnLocation, entityType!!)
         
         val nmsEntity = entity.nmsEntity
@@ -181,11 +184,11 @@ class MobDuplicator(pos: BlockPos, blockState: NovaBlockState, data: Compound) :
         
         private inner class ToggleNBTModeItem : AbstractItem() {
             
-            override fun getItemProvider(): ItemProvider {
-                return (if (keepNbt) GuiItems.NBT_BTN_ON else GuiItems.NBT_BTN_OFF).model.clientsideProvider
+            override fun getItemProvider(player: Player): ItemProvider {
+                return (if (keepNbt) GuiItems.NBT_BTN_ON else GuiItems.NBT_BTN_OFF).clientsideProvider
             }
             
-            override fun handleClick(clickType: ClickType, player: Player, event: InventoryClickEvent) {
+            override fun handleClick(clickType: ClickType, player: Player, click: Click) {
                 keepNbt = !keepNbt
                 notifyWindows()
                 
@@ -201,17 +204,20 @@ class MobDuplicator(pos: BlockPos, blockState: NovaBlockState, data: Compound) :
     private companion object PatronSkulls {
         
         private const val PATRON_SKULLS_URL = "https://xenondevs.xyz/nova/patron_skulls.json"
-        val patreonSkulls = ArrayList<SkullBuilder>()
+        val patreonSkulls = ArrayList<ItemBuilder>()
         
         init {
             runAsyncTask {
-                val url = URL(PATRON_SKULLS_URL)
+                val url = URI(PATRON_SKULLS_URL).toURL()
                 val array = url.openConnection().getInputStream().bufferedReader().use(JsonParser::parseReader)
                 if (array is JsonArray) {
                     array.asSequence()
                         .filter(JsonElement::isString)
                         .forEach {
-                            patreonSkulls += SkullBuilder(HeadTexture(it.asString))
+                            patreonSkulls += ItemBuilder(Material.PLAYER_HEAD).set(
+                                DataComponentTypes.PROFILE,
+                                ResolvableProfile.resolvableProfile().name(it.asString)
+                            )
                         }
                 }
             }
