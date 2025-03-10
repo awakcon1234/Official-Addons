@@ -92,5 +92,10 @@
     "advancement.logistics.vacuum_chest.title": "Không phải là lỗ đen",
     "advancement.logistics.vacuum_chest.description": "Chế tạo một máy hút vật phẩm",
     "advancement.logistics.storage_unit.title": "Quá nhiều vật phẩm",
-    "advancement.logistics.storage_unit.description": "Chế tạo một hộp chứa"
+    "advancement.logistics.storage_unit.description": "Chế tạo một hộp chứa",
+    "menu.logistics.power_cell.graph_bar_duration": "Một cột = %s",
+    "menu.logistics.power_cell.graph_shrink": "Thu nhỏ",
+    "menu.logistics.power_cell.graph_enlarge": "Phóng to",
+    "menu.logistics.power_cell.graph_mode.energy_delta": "Biểu đồ: Năng lượng vào/ra",
+    "menu.logistics.power_cell.graph_mode.energy": "Biểu đồ: Tổng năng lượng"
 }
