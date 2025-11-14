@@ -1,6 +1,7 @@
 package xyz.xenondevs.nova.addon.logistics.tileentity
 
 import com.google.common.collect.Table
+import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
@@ -58,6 +59,7 @@ import xyz.xenondevs.nova.world.block.tileentity.network.type.item.holder.ItemHo
 import xyz.xenondevs.nova.world.format.NetworkState
 import xyz.xenondevs.nova.world.model.FixedMultiModel
 import xyz.xenondevs.nova.world.model.Model
+import xyz.xenondevs.nova.world.player.swingMainHandEventless
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -237,7 +239,10 @@ open class Cable(
         
         return VirtualHitbox(from, to).apply {
             setQualifier { player, _ -> player.inventory.itemInMainHand.novaItem == Items.WRENCH }
-            addRightClickHandler { _, _ -> cycleBridgeFaces(face) }
+            addRightClickHandler { player, _ -> 
+                cycleBridgeFaces(face)
+                player.swingMainHandEventless()
+            }
         }
     }
     
@@ -247,6 +252,7 @@ open class Cable(
         val (from, to) = createHitboxPoints(pointA, pointB, face)
         
         return VirtualHitbox(from, to).apply {
+            setQualifier { player, _ -> player.gameMode != GameMode.ADVENTURE }
             addLeftClickHandler { player, _ ->
                 val ctx = Context.intention(BlockBreak)
                     .param(DefaultContextParamTypes.BLOCK_POS, pos)
