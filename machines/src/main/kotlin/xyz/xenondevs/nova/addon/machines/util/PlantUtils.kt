@@ -12,10 +12,12 @@ import xyz.xenondevs.nova.context.param.DefaultContextParamTypes
 import xyz.xenondevs.nova.integration.customitems.CustomBlockType
 import xyz.xenondevs.nova.integration.customitems.CustomItemServiceManager
 import xyz.xenondevs.nova.integration.customitems.CustomItemType
+import xyz.xenondevs.nova.context.intention.DefaultContextIntentions.BlockPlace
 import xyz.xenondevs.nova.util.BlockUtils
 import xyz.xenondevs.nova.util.below
 import xyz.xenondevs.nova.util.item.soundGroup
 import xyz.xenondevs.nova.util.novaBlock
+import xyz.xenondevs.nova.world.pos
 import kotlin.random.Random
 import org.bukkit.block.data.type.MangrovePropagule as MangrovePropaguleData
 
@@ -222,20 +224,36 @@ object PlantUtils {
     fun isSeed(item: ItemStack): Boolean =
         CustomItemServiceManager.getItemType(item) == CustomItemType.SEED
             || item.type in SEED_SOIL_BLOCKS
+            || CustomCrops.isSeed(item)
     
     fun canBePlaced(seed: ItemStack, block: Block): Boolean {
         val placeOn = block.below
         return (CustomItemServiceManager.getItemType(seed) == CustomItemType.SEED && placeOn.type == Material.FARMLAND)
             || SEED_SOIL_BLOCKS[seed.type]?.contains(placeOn.type) == true
+            || CustomCrops.canBePlacedOn(seed, placeOn)
     }
     
     fun requiresFarmland(seed: ItemStack): Boolean =
         CustomItemServiceManager.getItemType(seed) == CustomItemType.SEED
             || SEED_SOIL_BLOCKS[seed.type]?.contains(Material.FARMLAND) == true
+            || CustomCrops.requiresFarmland(seed)
     
     fun placeSeed(seed: ItemStack, block: Block, playEffects: Boolean) {
         if (CustomItemServiceManager.placeBlock(seed, block.location, playEffects))
             return
+        
+        // An addon crop is a Nova block, so it has to go through Nova rather than through
+        // Block.type, which would only write the backing state and leave the block unknown.
+        val crop = CustomCrops.cropOf(seed)
+        if (crop != null) {
+            val ctx = Context.intention(BlockPlace)
+                .param(DefaultContextParamTypes.BLOCK_POS, block.pos)
+                .param(DefaultContextParamTypes.BLOCK_TYPE_NOVA, crop)
+                .param(DefaultContextParamTypes.BLOCK_PLACE_EFFECTS, playEffects)
+                .build()
+            BlockUtils.placeBlock(ctx)
+            return
+        }
         
         val newType = SEED_GROWTH_BLOCKS[seed.type] ?: seed.type
         block.type = newType
@@ -249,6 +267,10 @@ object PlantUtils {
     }
     
     fun isHarvestable(block: Block): Boolean {
+        // an addon crop is ripe on its own age property, not on the age of the backing state
+        if (CustomCrops.isCrop(block))
+            return CustomCrops.isRipe(block)
+        
         // nova blocks using harvestable blocks as backing states are not harvestable,
         // unless they are Nova's leave replacements
         val novaBlock = block.novaBlock
@@ -260,11 +282,21 @@ object PlantUtils {
     
     fun harvest(ctx: Context<BlockBreak>) {
         val block = ctx[DefaultContextParamTypes.BLOCK_POS]!!.block
+        if (CustomCrops.isCrop(block)) {
+            BlockUtils.breakBlock(ctx)
+            return
+        }
+        
         HARVESTABLE_PLANTS[block.type]?.harvest(ctx)
     }
     
     fun getHarvestDrops(ctx: Context<BlockBreak>): List<ItemStack> {
         val block = ctx[DefaultContextParamTypes.BLOCK_POS]!!.block
+        
+        // Nova knows an addon block's own loot table; the vanilla table for its backing
+        // state would drop a tripwire hook or nothing at all.
+        if (CustomCrops.isCrop(block))
+            return BlockUtils.getDrops(ctx)
         
         val customBlockType = CustomItemServiceManager.getBlockType(block)
         if (customBlockType == CustomBlockType.NORMAL)

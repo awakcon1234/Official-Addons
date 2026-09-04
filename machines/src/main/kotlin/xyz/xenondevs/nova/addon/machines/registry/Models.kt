@@ -17,6 +17,8 @@ object Models {
     val ACACIA_TREE_MINIATURE = modelItem("tree_miniature/acacia")
     val DARK_OAK_TREE_MINIATURE = modelItem("tree_miniature/dark_oak")
     val MANGROVE_TREE_MINIATURE = modelItem("tree_miniature/mangrove")
+    val CHERRY_TREE_MINIATURE = modelItem("tree_miniature/cherry")
+    val PALE_OAK_TREE_MINIATURE = modelItem("tree_miniature/pale_oak")
     val CRIMSON_TREE_MINIATURE = modelItem("tree_miniature/crimson")
     val WARPED_TREE_MINIATURE = modelItem("tree_miniature/warped")
     val GIANT_RED_MUSHROOM_MINIATURE = modelItem("tree_miniature/red_mushroom")

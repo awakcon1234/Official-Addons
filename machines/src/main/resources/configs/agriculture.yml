@@ -1,0 +1,36 @@
+# Crops that belong to other addons, so that the Planter can sow them and the Harvester can reap
+# them. The machines addon does not depend on any of the addons named below: an entry is only read
+# if that addon is actually installed, and an unknown id is skipped with a warning. Add an entry to
+# teach the machines about any other addon's crop.
+#
+#   seed     the item to put in the Planter, as a Nova item id
+#   crop     the block that item plants, as a Nova block id
+#   age      the block state property holding the crop's growth stage
+#   max_age  the property holding the stage at which it is ripe; a plain number also works, and
+#            when it is left out the highest value the age property allows is used
+#   soil     what the crop may be planted on; vanilla materials and Nova block ids are both allowed
+custom_crops:
+  - seed: farmersdelight:cabbage_seeds
+    crop: farmersdelight:cabbages_crop
+    age: farmersdelight:age
+    max_age: farmersdelight:max_age
+    soil: [ minecraft:farmland ]
+  
+  - seed: farmersdelight:tomato_seeds
+    crop: farmersdelight:tomatoes_crop
+    age: farmersdelight:age
+    max_age: farmersdelight:max_age
+    soil: [ minecraft:farmland ]
+  
+  - seed: farmersdelight:onion
+    crop: farmersdelight:onions_crop
+    age: farmersdelight:age
+    max_age: farmersdelight:max_age
+    soil: [ minecraft:farmland ]
+  
+  # Rice grows on muddy farmland rather than on farmland, which is itself an addon block.
+  - seed: farmersdelight:rice
+    crop: farmersdelight:rice_crop
+    age: farmersdelight:age
+    max_age: farmersdelight:max_age
+    soil: [ farmersdelight:muddy_farmland ]
